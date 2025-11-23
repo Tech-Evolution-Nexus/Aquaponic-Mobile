@@ -1,17 +1,21 @@
-import 'dart:async';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import '../model/data_sensor.dart';
 
-class DummyApi {
-  static Future<SensorData> fetchDummyData() async {
-    await Future.delayed(const Duration(seconds: 1));
+class SensorApi {
+  static const String baseUrl = 'http://192.168.8.228:5000';
+  static Future<SensorData> fetchSensorData() async {
+    try {
+      final res = await http.get(Uri.parse('$baseUrl/latest'));
 
-    return SensorData(
-      suhuAir: 28.5,
-      suhuRuangan: 31.2,
-      phAir: 6.8,
-      kandunganMineral: 90.0,
-      waterPump: true,
-      riwayatSuhuAir: [26.5, 27.0, 27.5, 28.0, 28.5, 28.3, 28.7, 29.0],
-    );
+      if (res.statusCode == 200) {
+        final data = jsonDecode(res.body);
+        return SensorData.fromJson(data);
+      } else {
+        throw Exception('data gagal');
+      }
+    } catch (e) {
+      throw Exception("gagal masuk ");
+    }
   }
 }

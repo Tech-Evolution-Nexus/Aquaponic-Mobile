@@ -47,6 +47,11 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^5.0.0
   fl_chart: ^0.68.0
+  http: ^1.2.0
+  mqtt_client: ^10.0.0
+  crop_your_image: ^0.7.0
+  image_picker: ^0.8.7+4
+
 
 
 # For information on the generic Dart part of this file, see the
