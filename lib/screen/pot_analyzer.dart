@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import '../services/mqtt_service.dart';
+import '../api/analyzer_api.dart';   // ⬅️ WAJIB TAMBAH
 import 'manual_crop_page.dart';
 
 class PotAnalyzerScreen extends StatefulWidget {
@@ -28,36 +29,60 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
 
     mqtt = MqttService();
 
+    // ----------------------------
     // MQTT LISTENER
+    // ----------------------------
     mqtt.connect(
       onMessage: (topic, payload) {
-        if (topic == "camera/result") {
+        if (topic == "aquaponic/cam/result") {
           try {
             setState(() {
               imageBytes = base64Decode(payload);
             });
           } catch (e) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text("Gagal decode image dari kamera ❌"),
-              ),
+              const SnackBar(content: Text("Gagal decode image dari kamera ❌")),
             );
           }
         }
       },
     );
+
+    // ----------------------------
+    // LOAD IMAGE DARI FLASK
+    // ----------------------------
+    loadImageFromServer();
   }
 
-  // ======================================
-  // REQUEST ESP32 CAPTURE
-  // ======================================
+  // ==============================
+  // FETCH IMAGE FROM FLASK
+  // ==============================
+  Future<void> loadImageFromServer() async {
+    final img = await AnalyzerApi.fetchLatestImage();
+
+    if (img != null) {
+      setState(() {
+        imageBytes = img;
+      });
+    }
+  }
+
+  // ==============================
+  // REQUEST CAPTURE VIA MQTT
+  // ==============================
   void requestCapture() {
     try {
-      mqtt.publish("camera/capture", "take");
+      mqtt.publish("aquaponic/cam/capture", "take");
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Request capture dikirim ✔")),
       );
+
+      // 🔥 tunggu 1 detik untuk Flask simpan gambar baru
+      Future.delayed(const Duration(seconds: 1), () {
+        loadImageFromServer();
+      });
+
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -67,9 +92,9 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
     }
   }
 
-  // ======================================
+  // ==============================
   // OPEN CROP PAGE
-  // ======================================
+  // ==============================
   Future<void> openCropPage() async {
     if (imageBytes == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -100,9 +125,9 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
     }
   }
 
-  // ======================================
+  // ==============================
   // UI
-  // ======================================
+  // ==============================
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,7 +148,9 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
         padding: const EdgeInsets.all(16),
         child: Column(
           children: [
+            /// =============================
             /// GAMBAR UTAMA
+            /// =============================
             Expanded(
               child: Container(
                 width: double.infinity,
@@ -151,7 +178,9 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
 
             const SizedBox(height: 16),
 
+            /// =============================
             /// LIST 6 POT
+            /// =============================
             Expanded(
               child: ListView.builder(
                 itemCount: 6,
@@ -239,7 +268,9 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
               ),
             ),
 
+            /// =============================
             /// BUTTON CROP
+            /// =============================
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(

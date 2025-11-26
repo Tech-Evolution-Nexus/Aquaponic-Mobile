@@ -1,3 +1,4 @@
+import 'package:aquaponic_01/screen/history.dart';
 import 'package:aquaponic_01/screen/pot_analyzer.dart';
 import 'package:flutter/material.dart';
 import 'utils/const.dart';
@@ -24,7 +25,7 @@ class SmartAquaponicApp extends StatelessWidget {
       home: const SplashScreen(),
       routes: {
         '/pot_analyzer': (context) => const PotAnalyzerScreen(),
-        // '/setting': (context) => const SettingScreen(),
+        '/history': (context) => const HistoryScreen(),
       },
       /// =================================================
     );

@@ -187,12 +187,16 @@ class _DashboardScreenState extends State<DashboardScreen> {
               children: [
                 _DashboardCard(
                   title: 'pH Air',
-                  value: phList.isNotEmpty ? phList.last.toStringAsFixed(2) : '--',
+                  value: phList.isNotEmpty
+                      ? phList.last.toStringAsFixed(2)
+                      : '--',
                   imagePath: 'assets/img/ph.png',
                 ),
                 _DashboardCard(
                   title: 'TDS',
-                  value: tdsList.isNotEmpty ? tdsList.last.toStringAsFixed(0) : '--',
+                  value: tdsList.isNotEmpty
+                      ? tdsList.last.toStringAsFixed(0)
+                      : '--',
                   imagePath: 'assets/img/TDS.png',
                 ),
                 _DashboardCard(
@@ -216,10 +220,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       : '--',
                   imagePath: 'assets/img/humidity.png',
                 ),
-                _DashboardPowerCard(
-                  isOn: powerOn,
-                  onPressed: togglePower,
-                )
+                _DashboardPowerCard(isOn: powerOn, onPressed: togglePower),
               ],
             ),
           ],
@@ -237,7 +238,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             Navigator.pushNamed(context, '/pot_analyzer');
           }
           if (index == 2) {
-            Navigator.pushNamed(context, '/setting');
+            Navigator.pushNamed(context, '/history');
           }
         },
         items: const [
@@ -249,10 +250,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             icon: Icon(Icons.crop),
             label: "Pot Analyzer",
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: "Setting",
-          ),
+          BottomNavigationBarItem(icon: Icon(Icons.history), label: "History"),
         ],
       ),
     );
