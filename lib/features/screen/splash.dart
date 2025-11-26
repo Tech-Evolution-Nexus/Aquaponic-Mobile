@@ -1,6 +1,6 @@
-import 'package:aquaponic_01/screen/dashboard.dart';
+import 'package:aquaponic_01/features/screen/dashboard.dart';
 import 'package:flutter/material.dart';
-import '../utils/const.dart';
+import '../../Core/const/const.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});

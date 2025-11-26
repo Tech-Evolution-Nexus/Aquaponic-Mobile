@@ -1,7 +1,7 @@
-import 'package:aquaponic_01/api/api_sensor.dart';
-import 'package:aquaponic_01/model/clasifikasi.dart';
+import 'package:aquaponic_01/Data/services/api/api_sensor.dart';
+import 'package:aquaponic_01/Data/model/clasifikasi.dart';
 import 'package:flutter/material.dart';
-import '../utils/const.dart';
+import '../../Core/const/const.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});

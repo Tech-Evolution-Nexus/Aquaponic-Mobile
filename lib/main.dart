@@ -1,8 +1,8 @@
-import 'package:aquaponic_01/screen/history.dart';
-import 'package:aquaponic_01/screen/pot_analyzer.dart';
+import 'package:aquaponic_01/features/screen/history.dart';
+import 'package:aquaponic_01/features/screen/pot_analyzer.dart';
 import 'package:flutter/material.dart';
-import 'utils/const.dart';
-import 'screen/splash.dart';
+import 'Core/const/const.dart';
+import 'features/screen/splash.dart';
 
 void main() {
   runApp(const SmartAquaponicApp());

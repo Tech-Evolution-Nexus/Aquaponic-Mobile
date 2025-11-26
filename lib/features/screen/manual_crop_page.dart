@@ -54,10 +54,14 @@ class _ManualCropPageState extends State<ManualCropPage> {
                           if (!resizing) {
                             // DRAG MODE
                             setState(() {
-                              boxX = (boxX + details.delta.dx)
-                                  .clamp(0, imgW - boxSize);
-                              boxY = (boxY + details.delta.dy)
-                                  .clamp(0, imgH - boxSize);
+                              boxX = (boxX + details.delta.dx).clamp(
+                                0,
+                                imgW - boxSize,
+                              );
+                              boxY = (boxY + details.delta.dy).clamp(
+                                0,
+                                imgH - boxSize,
+                              );
                             });
                           }
                         },
@@ -111,11 +115,14 @@ class _ManualCropPageState extends State<ManualCropPage> {
                                       width: 1.5,
                                     ),
                                   ),
-                                  child: const Icon(Icons.zoom_out_map,
-                                      size: 16, color: Colors.black),
+                                  child: const Icon(
+                                    Icons.zoom_out_map,
+                                    size: 16,
+                                    color: Colors.black,
+                                  ),
                                 ),
                               ),
-                            )
+                            ),
                           ],
                         ),
                       ),
@@ -158,22 +165,19 @@ class _ManualCropPageState extends State<ManualCropPage> {
     canvas.drawImageRect(original, srcRect, dstRect, Paint());
 
     final pic = recorder.endRecording();
-    final cropped = await pic.toImage(
-      boxSize.toInt(),
-      boxSize.toInt(),
-    );
+    final cropped = await pic.toImage(boxSize.toInt(), boxSize.toInt());
 
     final data = await cropped.toByteData(format: ui.ImageByteFormat.png);
     final bytes = data!.buffer.asUint8List();
-
+    
     Navigator.pop(context, {
       "image": bytes,
-      "rect": {
-        "x": boxX.toInt(),
-        "y": boxY.toInt(),
-        "xmax": (boxX + boxSize).toInt(),
-        "ymax": (boxY + boxSize).toInt(),
-      }
+      "bounding_box": {
+        "x_min": boxX.toInt(),
+        "y_min": boxY.toInt(),
+        "x_max": (boxX + boxSize).toInt(),
+        "y_max": (boxY + boxSize).toInt(),
+      },
     });
   }
 }

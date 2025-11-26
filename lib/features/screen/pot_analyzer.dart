@@ -1,8 +1,7 @@
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
-import '../services/mqtt_service.dart';
-import '../api/analyzer_api.dart';   // ⬅️ WAJIB TAMBAH
+import '../../Data/services/Mqtt/mqtt_service.dart';
 import 'manual_crop_page.dart';
 
 class PotAnalyzerScreen extends StatefulWidget {
@@ -34,37 +33,24 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
     // ----------------------------
     mqtt.connect(
       onMessage: (topic, payload) {
-        if (topic == "aquaponic/cam/result") {
-          try {
-            setState(() {
-              imageBytes = base64Decode(payload);
-            });
-          } catch (e) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text("Gagal decode image dari kamera ❌")),
-            );
+        if (topic == "aquaponic/response") {
+          // CEK apakah payload adalah BASE64 (panjang)
+          if (payload.length > 50) {
+            try {
+              setState(() {
+                imageBytes = base64Decode(payload);
+              });
+            } catch (e) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text("Gagal decode image dari kamera ❌"),
+                ),
+              );
+            }
           }
         }
       },
     );
-
-    // ----------------------------
-    // LOAD IMAGE DARI FLASK
-    // ----------------------------
-    loadImageFromServer();
-  }
-
-  // ==============================
-  // FETCH IMAGE FROM FLASK
-  // ==============================
-  Future<void> loadImageFromServer() async {
-    final img = await AnalyzerApi.fetchLatestImage();
-
-    if (img != null) {
-      setState(() {
-        imageBytes = img;
-      });
-    }
   }
 
   // ==============================
@@ -72,17 +58,14 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
   // ==============================
   void requestCapture() {
     try {
-      mqtt.publish("aquaponic/cam/capture", "take");
+      mqtt.publishCommand();
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Request capture dikirim ✔")),
       );
 
-      // 🔥 tunggu 1 detik untuk Flask simpan gambar baru
-      Future.delayed(const Duration(seconds: 1), () {
-        loadImageFromServer();
-      });
-
+      // ❌ TIDAK PERLU FETCH FLASK LAGI
+      // Flutter akan langsung menerima Base64 via MQTT
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(

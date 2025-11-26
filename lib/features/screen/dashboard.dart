@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../api/api_sensor.dart';
-import '../utils/const.dart';
-import '../services/mqtt_service.dart';
+import '../../Data/services/api/api_sensor.dart';
+import '../../Core/const/const.dart';
+import '../../Data/services/Mqtt/mqtt_service.dart';
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -48,17 +48,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
     });
   }
 
-  void togglePower() {
-    setState(() => powerOn = !powerOn);
-    mqtt.publishPower(powerOn);
+  // void togglePower() {
+  //   setState(() => powerOn = !powerOn);
+  //   mqtt.publishPower(powerOn);
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Power: ${powerOn ? 'ON' : 'OFF'}"),
-        duration: const Duration(milliseconds: 900),
-      ),
-    );
-  }
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     SnackBar(
+  //       content: Text("Power: ${powerOn ? 'ON' : 'OFF'}"),
+  //       duration: const Duration(milliseconds: 900),
+  //     ),
+  //   );
+  // }
 
   @override
   Widget build(BuildContext context) {
@@ -220,7 +220,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       : '--',
                   imagePath: 'assets/img/humidity.png',
                 ),
-                _DashboardPowerCard(isOn: powerOn, onPressed: togglePower),
+                // _DashboardPowerCard(isOn: powerOn, onPressed: togglePower),
               ],
             ),
           ],
