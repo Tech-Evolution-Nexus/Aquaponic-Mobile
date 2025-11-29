@@ -1,4 +1,6 @@
+import 'package:aquaponic_01/Data/services/Mqtt/mqtt_service.dart';
 import 'package:aquaponic_01/features/screen/history.dart';
+import 'package:aquaponic_01/features/screen/maintenance.dart';
 import 'package:aquaponic_01/features/screen/pot_analyzer.dart';
 import 'package:flutter/material.dart';
 import 'Core/const/const.dart';
@@ -21,13 +23,14 @@ class SmartAquaponicApp extends StatelessWidget {
         fontFamily: 'Poppins',
       ),
 
-      /// ========== ROUTE DIDAFTARKAN DI SINI ==========
       home: const SplashScreen(),
       routes: {
         '/pot_analyzer': (context) => const PotAnalyzerScreen(),
         '/history': (context) => const HistoryScreen(),
+        '/maintenance': (context) => MaintenanceScreen(
+              mqtt: MqttService(),
+            ),
       },
-      /// =================================================
     );
   }
 }

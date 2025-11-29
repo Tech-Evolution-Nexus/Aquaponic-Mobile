@@ -4,8 +4,13 @@ import 'package:flutter/material.dart';
 
 class ManualCropPage extends StatefulWidget {
   final Uint8List imageBytes;
+  final int potNumber;
 
-  const ManualCropPage({super.key, required this.imageBytes});
+  const ManualCropPage({
+    super.key,
+    required this.imageBytes,
+    required this.potNumber,
+  });
 
   @override
   State<ManualCropPage> createState() => _ManualCropPageState();
@@ -15,20 +20,18 @@ class _ManualCropPageState extends State<ManualCropPage> {
   double boxX = 30;
   double boxY = 30;
   double boxSize = 150;
-
   double imgW = 0;
   double imgH = 0;
-
   bool resizing = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Manual Crop")),
+      appBar: AppBar(title: Text("Crop Pot ${widget.potNumber}")),
       body: LayoutBuilder(
         builder: (context, constraints) {
           imgW = constraints.maxWidth;
-          imgH = imgW * 0.75; // rasio aman
+          imgH = imgW * 0.75;
 
           return Column(
             children: [
@@ -37,7 +40,6 @@ class _ManualCropPageState extends State<ManualCropPage> {
                 height: imgH,
                 child: Stack(
                   children: [
-                    /// IMAGE
                     Image.memory(
                       widget.imageBytes,
                       width: imgW,
@@ -45,29 +47,22 @@ class _ManualCropPageState extends State<ManualCropPage> {
                       fit: BoxFit.cover,
                     ),
 
-                    /// DRAG + RESIZE BOX
                     Positioned(
                       left: boxX,
                       top: boxY,
                       child: GestureDetector(
                         onPanUpdate: (details) {
                           if (!resizing) {
-                            // DRAG MODE
                             setState(() {
-                              boxX = (boxX + details.delta.dx).clamp(
-                                0,
-                                imgW - boxSize,
-                              );
-                              boxY = (boxY + details.delta.dy).clamp(
-                                0,
-                                imgH - boxSize,
-                              );
+                              boxX = (boxX + details.delta.dx)
+                                  .clamp(0, imgW - boxSize);
+                              boxY = (boxY + details.delta.dy)
+                                  .clamp(0, imgH - boxSize);
                             });
                           }
                         },
                         child: Stack(
                           children: [
-                            /// BOX AREA
                             Container(
                               width: boxSize,
                               height: boxSize,
@@ -79,49 +74,10 @@ class _ManualCropPageState extends State<ManualCropPage> {
                               ),
                             ),
 
-                            /// RESIZE HANDLE (pojok kanan bawah)
                             Positioned(
                               right: -12,
                               bottom: -12,
-                              child: GestureDetector(
-                                onPanStart: (_) => resizing = true,
-                                onPanEnd: (_) => resizing = false,
-                                onPanUpdate: (details) {
-                                  setState(() {
-                                    double newSize = boxSize + details.delta.dx;
-
-                                    // Biar tetap kotak
-                                    newSize = newSize.clamp(60, imgW);
-
-                                    // Prevent keluar batas
-                                    if (boxX + newSize > imgW) {
-                                      newSize = imgW - boxX;
-                                    }
-                                    if (boxY + newSize > imgH) {
-                                      newSize = imgH - boxY;
-                                    }
-
-                                    boxSize = newSize;
-                                  });
-                                },
-                                child: Container(
-                                  width: 25,
-                                  height: 25,
-                                  decoration: BoxDecoration(
-                                    color: Colors.yellow,
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: Colors.black,
-                                      width: 1.5,
-                                    ),
-                                  ),
-                                  child: const Icon(
-                                    Icons.zoom_out_map,
-                                    size: 16,
-                                    color: Colors.black,
-                                  ),
-                                ),
-                              ),
+                              child: GestureBoxResizeHandle(),
                             ),
                           ],
                         ),
@@ -140,6 +96,35 @@ class _ManualCropPageState extends State<ManualCropPage> {
             ],
           );
         },
+      ),
+    );
+  }
+
+  Widget GestureBoxResizeHandle() {
+    return GestureDetector(
+      onPanStart: (_) => resizing = true,
+      onPanEnd: (_) => resizing = false,
+      onPanUpdate: (details) {
+        setState(() {
+          double newSize = boxSize + details.delta.dx;
+
+          newSize = newSize.clamp(60, imgW);
+
+          if (boxX + newSize > imgW) newSize = imgW - boxX;
+          if (boxY + newSize > imgH) newSize = imgH - boxY;
+
+          boxSize = newSize;
+        });
+      },
+      child: Container(
+        width: 25,
+        height: 25,
+        decoration: BoxDecoration(
+          color: Colors.yellow,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.black, width: 1.5),
+        ),
+        child: const Icon(Icons.zoom_out_map, size: 16, color: Colors.black),
       ),
     );
   }
@@ -169,10 +154,10 @@ class _ManualCropPageState extends State<ManualCropPage> {
 
     final data = await cropped.toByteData(format: ui.ImageByteFormat.png);
     final bytes = data!.buffer.asUint8List();
-    
+
     Navigator.pop(context, {
       "image": bytes,
-      "bounding_box": {
+      "rect": {
         "x_min": boxX.toInt(),
         "y_min": boxY.toInt(),
         "x_max": (boxX + boxSize).toInt(),

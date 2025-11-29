@@ -128,7 +128,6 @@ class _DetailScreenState extends State<DetailScreen>
   }
 }
 
-// ===== ITEM DETAIL =====
 class _DetailItem extends StatelessWidget {
   final String title;
   final String value;
@@ -176,7 +175,6 @@ class _DetailItem extends StatelessWidget {
   }
 }
 
-// ====== DUMMY CHART DETAIL ======
 class _DetailChartPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {

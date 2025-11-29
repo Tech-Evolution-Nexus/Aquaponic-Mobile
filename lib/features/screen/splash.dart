@@ -13,7 +13,6 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Tunggu 3 detik sebelum pindah ke Login
     Future.delayed(const Duration(seconds: 5), () {
       Navigator.pushReplacement(
         context,
@@ -30,7 +29,6 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Pastikan kamu sudah punya file assets/img/logo.png
             Image.asset('assets/img/logo.png', height: 150),
             const SizedBox(height: 30),
             const Text(

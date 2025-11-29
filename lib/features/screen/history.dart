@@ -19,7 +19,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
     _historyData = SensorApi.fetchWeeklyHistory();
   }
 
-  // ------------------ COLOR HELPER ------------------
   Color getChipColor(String pred) {
     switch (pred.toLowerCase()) {
       case 'kuning':
@@ -27,7 +26,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       case 'rusak':
         return Colors.red;
       default:
-        return kPrimaryColor; // default hijau utama
+        return kPrimaryColor; 
     }
   }
 
@@ -38,7 +37,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       case 'rusak':
         return Colors.red.withOpacity(0.08);
       default:
-        return kPrimaryColor.withOpacity(0.08); // default hijau muda
+        return kPrimaryColor.withOpacity(0.08); 
     }
   }
   @override
@@ -60,7 +59,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
       body: FutureBuilder<List<ClassificationData>>(
         future: _historyData,
         builder: (context, snapshot) {
-          // ------------ LOADING ------------
+
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(
               child: CircularProgressIndicator(
@@ -70,7 +69,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             );
           }
 
-          // ------------ ERROR ------------
           if (snapshot.hasError) {
             return const Center(
               child: Text(
@@ -84,7 +82,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
             );
           }
 
-          // ------------ NO DATA ------------
           if (!snapshot.hasData || snapshot.data!.isEmpty) {
             return Center(
               child: Column(
@@ -109,7 +106,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             );
           }
 
-          // ------------ DATA READY ------------
+  
           final data = snapshot.data!;
 
           return ListView.separated(
@@ -135,7 +132,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ---------------- IMAGE ----------------
+              
                     ClipRRect(
                       borderRadius: BorderRadius.circular(16),
                       child: Image.network(
@@ -163,7 +160,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
 
                     const SizedBox(width: 14),
 
-                    // ---------------- TEXT CONTENT ----------------
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,

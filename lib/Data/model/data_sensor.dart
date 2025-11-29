@@ -1,19 +1,19 @@
 class SensorData {
   final double ph;
   final double tds;
-  final double waterTemperature;
-  final double airTemperature;
+  final double water_temperature;
+  final double temperature;
   final double humidity;
-  final bool? power;
+  final bool? relay;
   final DateTime timestamp;
 
   SensorData({
     required this.ph,
     required this.tds,
-    required this.waterTemperature,
-    required this.airTemperature,
+    required this.water_temperature,
+    required this.temperature,
     required this.humidity,
-    required this.power,
+    required this.relay,
     required this.timestamp,
   });
 
@@ -35,10 +35,10 @@ class SensorData {
     return SensorData(
       ph: toDouble(json['ph']),
       tds: toDouble(json['tds']),
-      waterTemperature: toDouble(json['waterTemperature']),
-      airTemperature: toDouble(json['airTemperature']),
+      water_temperature: toDouble(json['water_temperature']),
+      temperature: toDouble(json['temperature']),
       humidity: toDouble(json['humidity']),
-      power: toBool(json['power']),
+      relay: toBool(json['relay']),
       timestamp: DateTime.tryParse(json['timestamp'] ?? '') ?? DateTime.now(),
     );
   }

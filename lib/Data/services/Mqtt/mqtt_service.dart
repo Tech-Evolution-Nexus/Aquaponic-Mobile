@@ -4,7 +4,7 @@ import 'package:mqtt_client/mqtt_server_client.dart';
 import 'package:flutter/services.dart' show rootBundle;
 
 class MqttService {
-  late MqttServerClient client;
+  MqttServerClient? client;
   Function(String topic, String payload)? onMessage;
 
   final String broker = 'fed021a58d384c25a16ad61f8aebbecb.s1.eu.hivemq.cloud';
@@ -13,17 +13,25 @@ class MqttService {
   final String pass = 'Worst0ne';
   final String topicSubscribe = 'aquaponic/#';
   final String topicCommand = 'aquaponic/capture';
-  final String caCertPath = 'assets/cfg.pem'; // pastikan ada di assets
+  final String caCertPath = 'assets/cfg.pem'; 
 
-  Future<void> connect({Function(String topic, String payload)? onMessage}) async {
+  Future<void> connect({
+    Function(String topic, String payload)? onMessage,
+  }) async {
     this.onMessage = onMessage;
 
-    client = MqttServerClient(broker, 'flutter_test_client');
-    client.port = port;
-    client.secure = true;
-    client.setProtocolV311();
-    client.keepAlivePeriod = 20;
-    client.autoReconnect = true;
+    // jika sudah terhubung, jangan ulangi
+    if (client?.connectionStatus?.state == MqttConnectionState.connected) {
+      print('🔁 MQTT already connected');
+      return;
+    }
+
+    client = MqttServerClient(broker, 'flutter_test_client_${DateTime.now().millisecondsSinceEpoch}');
+    client!.port = port;
+    client!.secure = true;
+    client!.setProtocolV311();
+    client!.keepAlivePeriod = 20;
+    client!.autoReconnect = true;
 
     // ===== Load CA Certificate =====
     final context = SecurityContext.defaultContext;
@@ -33,52 +41,125 @@ class MqttService {
     } catch (e) {
       print("❌ Failed to load CA cert: $e");
     }
-    client.securityContext = context;
+    client!.securityContext = context;
 
     // ===== Connect message =====
-    client.connectionMessage = MqttConnectMessage()
-        .withClientIdentifier('flutter_test_client')
+    client!.connectionMessage = MqttConnectMessage()
+        .withClientIdentifier(client!.clientIdentifier)
         .authenticateAs(user, pass)
         .startClean()
         .withWillQos(MqttQos.atMostOnce);
 
+    // event callbacks
+    client!.onConnected = () {
+      print("✅ MQTT onConnected");
+    };
+    client!.onDisconnected = () {
+      print("⚠️ MQTT onDisconnected");
+    };
+    client!.onAutoReconnect = () {
+      print("🔄 MQTT auto reconnecting...");
+    };
+
     // ===== Connect =====
     try {
       print("🔌 Connecting to MQTT Broker...");
-      await client.connect();
+      await client!.connect();
       print("✅ MQTT Connected!");
 
       // ===== Subscribe =====
-      client.subscribe(topicSubscribe, MqttQos.atMostOnce);
-
+      // ...existing code...
       // ===== Listener =====
-      client.updates?.listen((messages) {
-        final rec = messages[0] as MqttReceivedMessage<MqttPublishMessage>;
-        final payload = MqttPublishPayload.bytesToStringAsString(rec.payload.payload.message);
-        print("📥 RECEIVED → [${rec.topic}] $payload");
-        onMessage?.call(rec.topic, payload);
+      client!.updates?.listen((messages) {
+        if (messages.isEmpty) return;
+        for (final msg in messages) {
+          try {
+            // Pastikan ini pesan publish sebelum cast
+            if (msg is MqttReceivedMessage<MqttPublishMessage>) {
+              final rec = msg;
+              final payload = MqttPublishPayload.bytesToStringAsString(
+                rec.payload.payload.message,
+              );
+              print("📥 RECEIVED → [${rec.topic}] payloadLen=${payload.length}");
+              try {
+                onMessage?.call(rec.topic, payload);
+              } catch (e) {
+                print("❌ onMessage handler error: $e");
+              }
+            } else {
+              // ignore non-publish message types (e.g. ack, ping)
+              print("ℹ️ Ignored non-publish message: ${msg.runtimeType}");
+            }
+          } catch (e, st) {
+            print("❌ Error processing incoming MQTT message: $e\n$st");
+          }
+        }
       });
-
+// ...existing code...
     } on NoConnectionException catch (e) {
       print("❌ NoConnectionException: $e");
-      client.disconnect();
+      await disconnect();
     } on SocketException catch (e) {
       print("❌ SocketException: $e");
-      client.disconnect();
+      await disconnect();
     } catch (e) {
       print("❌ MQTT General Error: $e");
-      client.disconnect();
+      await disconnect();
+    }
+  }
+
+  Future<void> disconnect() async {
+    try {
+      if (client != null) {
+        print("🔌 Disconnecting MQTT...");
+        client!.disconnect();
+        client = null;
+      }
+    } catch (e) {
+      print("❌ Error while disconnecting MQTT: $e");
     }
   }
 
   void publishCommand() {
-    if (client.connectionStatus?.state != MqttConnectionState.connected) {
+    if (client?.connectionStatus?.state != MqttConnectionState.connected) {
       print("❌ MQTT not connected");
       return;
     }
     final builder = MqttClientPayloadBuilder();
     builder.addString("capture");
-    client.publishMessage(topicCommand, MqttQos.atMostOnce, builder.payload!);
+    client!.publishMessage(topicCommand, MqttQos.atMostOnce, builder.payload!);
     print("📤 PUBLISH → [$topicCommand] capture");
+  }
+
+  void setPump(bool on) {
+    if (client?.connectionStatus?.state != MqttConnectionState.connected) {
+      print("❌ MQTT not connected - cannot set pump");
+      return;
+    }
+    final payload = on ? "ON" : "OFF";
+    final builder = MqttClientPayloadBuilder();
+    builder.addString(payload);
+    client!.publishMessage(
+      'aquaponic/esp32/relay_pump',
+      MqttQos.atMostOnce,
+      builder.payload!,
+    );
+    print("📤 Pump → $payload");
+  }
+
+  void subscribe(String topic, {MqttQos qos = MqttQos.atMostOnce}) {
+    if (client?.connectionStatus?.state != MqttConnectionState.connected) {
+      print("❌ MQTT not connected - cannot subscribe");
+      return;
+    }
+    client!.subscribe(topic, qos);
+  }
+
+  void unsubscribe(String topic) {
+    if (client?.connectionStatus?.state != MqttConnectionState.connected) {
+      print("❌ MQTT not connected - cannot unsubscribe");
+      return;
+    }
+    client!.unsubscribe(topic);
   }
 }
