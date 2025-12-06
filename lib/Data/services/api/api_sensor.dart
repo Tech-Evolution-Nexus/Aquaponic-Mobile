@@ -8,7 +8,7 @@ import 'package:aquaponic_01/Data/model/savepot.dart';
 import 'package:http/http.dart' as http;
 
 class SensorApi {
-  static const String baseUrl = 'http://192.168.0.100:5000';
+  static const String baseUrl = 'http://192.168.1.9:5000';
 
   static const Duration _timeout = Duration(seconds: 12);
 

@@ -318,21 +318,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        "AQUANEK",
+                        "AQUANEX",
                         style: TextStyle(
                           fontSize: 25,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                      SizedBox(height: 2),
-                      Text(
-                        "Aquaponic Network Experience",
-                        style: TextStyle(
-                          color: Color.fromARGB(179, 220, 216, 216),
-                          fontSize: 14,
-                        ),
-                      ),
+                      //   SizedBox(height: 2),
+                      //   Text(
+                      //     "Aquaponic Network Experience",
+                      //     style: TextStyle(
+                      //       color: Color.fromARGB(179, 220, 216, 216),
+                      //       fontSize: 14,
+                      //     ),
+                      //   ),
                     ],
                   ),
                 ],
