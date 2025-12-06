@@ -3,12 +3,13 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:typed_data';
 import 'package:aquaponic_01/Data/model/clasifikasi.dart';
+import 'package:aquaponic_01/Data/model/data_sensor.dart';
 import 'package:aquaponic_01/Data/model/savepot.dart';
 import 'package:http/http.dart' as http;
-import '../../model/data_sensor.dart';
 
 class SensorApi {
-  static const String baseUrl = 'http://10.10.10.191:5000';
+  static const String baseUrl = 'http://192.168.0.100:5000';
+
   static const Duration _timeout = Duration(seconds: 12);
 
   static Future<SensorData> fetchSensorData() async {
@@ -59,20 +60,10 @@ class SensorApi {
     Duration timeout = _timeout,
   }) async {
     try {
-      // try setup image first
-      final respGet = await http
-          .get(Uri.parse('$baseUrl/get-image'))
-          .timeout(timeout);
-      if (respGet.statusCode == 200) {
-        final map = jsonDecode(respGet.body);
-        final url = map['url'] as String?;
-        if (url != null && url.isNotEmpty) return _toFullUrl(url);
-      }
-
-      // then try classification DB
       final respLatest = await http
           .get(Uri.parse('$baseUrl/latest-image'))
           .timeout(timeout);
+
       if (respLatest.statusCode == 200) {
         final body = jsonDecode(respLatest.body);
         if (body is List && body.isNotEmpty) {
@@ -84,14 +75,24 @@ class SensorApi {
         }
       }
 
-      // fallback try /latest-image-file (some server returns this path)
+      // 2️⃣ fallback kalau latest-image null → baru get-image
+      final respGet = await http
+          .get(Uri.parse('$baseUrl/get-image'))
+          .timeout(timeout);
+
+      if (respGet.statusCode == 200) {
+        final map = jsonDecode(respGet.body);
+        final url = map['url'] as String?;
+        if (url != null && url.isNotEmpty) return _toFullUrl(url);
+      }
+
+      // 3️⃣ fallback terakhir
       final tryFile = await _tryLatestImageFileHead(timeout);
       if (tryFile != null) return tryFile;
-    } on TimeoutException catch (e) {
-      print("fetchLatestImageUrl timeout: $e");
     } catch (e) {
       print("fetchLatestImageUrl error: $e");
     }
+
     return null;
   }
 

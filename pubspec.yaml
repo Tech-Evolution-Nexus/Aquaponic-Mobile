@@ -51,7 +51,7 @@ dev_dependencies:
   mqtt_client: ^10.0.0
   crop_your_image: ^0.7.0
   image_picker: ^0.8.7+4
-  
+  cached_network_image: ^3.2.3
 
 
 

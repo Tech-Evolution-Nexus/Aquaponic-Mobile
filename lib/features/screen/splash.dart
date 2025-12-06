@@ -32,7 +32,7 @@ class _SplashScreenState extends State<SplashScreen> {
             Image.asset('assets/img/logo.png', height: 150),
             const SizedBox(height: 30),
             const Text(
-              'Smart AquaPonic',
+              'Aquanex',
               style: TextStyle(
                 fontSize: 26,
                 fontWeight: FontWeight.bold,

@@ -24,7 +24,7 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
 
   final List<Map<String, dynamic>> potData = List.generate(
     6,
-    (_) => {"image": null, "rect": null},
+    (_) => {"image": null, "rect": null, "rect_ratio": null},
   );
 
   @override
@@ -200,6 +200,7 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
       setState(() {
         potData[selectedPot]["image"] = result["image"];
         potData[selectedPot]["rect"] = result["rect"];
+        potData[selectedPot]["rect_ratio"] = result["rect_ratio"];
       });
     }
   }
@@ -245,7 +246,6 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text("Berhasil mengirim ke Flask ✔")),
         );
-        resetPotData();
       } else {
         ScaffoldMessenger.of(
           context,
@@ -259,6 +259,7 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
       for (int i = 0; i < potData.length; i++) {
         potData[i]["image"] = null;
         potData[i]["rect"] = null;
+        potData[i]["rect_ratio"] = null;
       }
       selectedPot = 0;
     });
@@ -268,7 +269,10 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Pot Analyzer",style: TextStyle(color: Colors.white),),
+        title: const Text(
+          "Pot Analyzer",
+          style: TextStyle(color: Colors.white),
+        ),
         backgroundColor: kPrimaryColor,
         actions: [
           IconButton(
@@ -317,7 +321,7 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
                 ),
                 child: const Text(
                   "Kirim Semua Pot",
-                  style: TextStyle(fontSize: 16,color: Colors.white),
+                  style: TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
             ),
@@ -330,24 +334,67 @@ class _PotAnalyzerScreenState extends State<PotAnalyzerScreen> {
   }
 
   Widget _buildImageViewer() {
-    if (imageBytes != null) {
-      return Image.memory(imageBytes!, fit: BoxFit.contain);
-    }
-
-    if (apiImageUrl != null) {
-      return Image.network(
-        "${apiImageUrl!}?cache=${DateTime.now().millisecondsSinceEpoch}",
-        fit: BoxFit.contain,
-        errorBuilder: (_, __, ___) =>
-            const Center(child: Text("Gagal memuat gambar")),
+    if (imageBytes == null && apiImageUrl == null) {
+      return Center(
+        child: Text(
+          "Belum ada gambar",
+          style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
+        ),
       );
     }
 
-    return Center(
-      child: Text(
-        "Belum ada gambar",
-        style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final viewerWidth = constraints.maxWidth;
+        final viewerHeight = constraints.maxHeight;
+
+        return Stack(
+          children: [
+            Container(
+              width: viewerWidth,
+              height: viewerHeight,
+              color: Colors.black,
+              child: imageBytes != null
+                  ? Image.memory(imageBytes!, fit: BoxFit.contain)
+                  : Image.network(
+                      "${apiImageUrl!}?cache=${DateTime.now().millisecondsSinceEpoch}",
+                      fit: BoxFit.contain,
+                    ),
+            ),
+
+            // overlay bounding box
+            ...potData.asMap().entries.map((entry) {
+              final ratio = entry.value["rect_ratio"];
+              if (ratio == null) return const SizedBox.shrink();
+
+              final xMin = (ratio['x_min'] as num).toDouble() * viewerWidth;
+              final yMin = (ratio['y_min'] as num).toDouble() * viewerHeight;
+
+              final width =
+                  ((ratio['x_max'] as num).toDouble() -
+                      (ratio['x_min'] as num).toDouble()) *
+                  viewerWidth;
+
+              final height =
+                  ((ratio['y_max'] as num).toDouble() -
+                      (ratio['y_min'] as num).toDouble()) *
+                  viewerHeight;
+
+              return Positioned(
+                left: xMin,
+                top: yMin,
+                width: width,
+                height: height,
+                child: Container(
+                  decoration: BoxDecoration(
+                    border: Border.all(color: Colors.yellow, width: 2),
+                  ),
+                ),
+              );
+            }).toList(),
+          ],
+        );
+      },
     );
   }
 

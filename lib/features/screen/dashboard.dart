@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:aquaponic_01/Core/const/sensor_limits.dart';
 import 'package:aquaponic_01/features/screen/maintenance.dart';
 import 'package:flutter/material.dart';
@@ -22,32 +23,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
   final List<double> suhuRuanganList = [];
   final List<double> kelembapanList = [];
 
+  String temperature = "";
+  String humidity = "";
+  String waterTemp = "";
+  String ph = "";
+  String tds = "";
+
   bool powerOn = false;
   late MqttService mqtt;
 
   String? latestImageUrl;
   DateTime? _lastWarningTime;
-  Timer? _sensorTimer;
   Timer? _imageTimer;
   bool maintenanceActive = false;
   int? maintenanceSeconds;
   Timer? maintenanceTimer;
   int? maintenanceCountdown;
   Timer? countdownTimer;
+  bool manualLockActive = false;
+  int? manualLockSeconds;
+  Timer? manualLockTimer;
+  Timer? manualLockCountdownTimer;
 
   @override
   void initState() {
     super.initState();
     mqtt = MqttService();
-    mqtt.connect();
+    mqtt
+        .connect(
+          
+          onMessage: (topic, payload) {
+              // ⬇⬇⬇ ADD DEBUG PRINT HERE
+  print("📩 MQTT RECEIVED TOPIC: $topic  |  PAYLOAD: $payload");
+  // ⬆⬆⬆
+            
+            setState(() {
+              
+              final value = double.tryParse(payload) ?? 0;
 
-    // Fetch sensor tiap 3 detik
-    _sensorTimer = Timer.periodic(
-      const Duration(seconds: 1),
-      (_) => _fetchData(),
-    );
+              if (topic.endsWith("/ph")) {
+                ph = payload;
+                phList.add(value);
+                if (phList.length > 20) phList.removeAt(0);
+              } else if (topic.endsWith("/tds")) {
+                tds = payload;
+                tdsList.add(value);
+                if (tdsList.length > 20) tdsList.removeAt(0);
+              } else if (topic.endsWith("/wtr_temp")) {
+                waterTemp = payload;
+                suhuAirList.add(value);
+                if (suhuAirList.length > 20) suhuAirList.removeAt(0);
+              } else if (topic.endsWith("/temp")) {
+                temperature = payload;
+                suhuRuanganList.add(value);
+                if (suhuRuanganList.length > 20) suhuRuanganList.removeAt(0);
+              } else if (topic.endsWith("/hum")) {
+                humidity = payload;
+                kelembapanList.add(value);
+                if (kelembapanList.length > 20) kelembapanList.removeAt(0);
+              }
+            });
 
-    // ambil gambar hasil klasifikasi lebih dulu dan periodik tiap 5s
+            // 🚨 Setelah update sensor, cek peringatan
+            checkWarnings(
+              double.tryParse(ph) ?? 0,
+              double.tryParse(tds) ?? 0,
+              double.tryParse(waterTemp) ?? 0,
+              double.tryParse(temperature) ?? 0,
+              double.tryParse(humidity) ?? 0,
+            );
+          },
+        )
+        .then((_) {
+          // << ADD THIS !!
+          mqtt.subscribe("aquaponic/#");
+          print("📡 SUBSCRIBED TO aquaponic/#");
+        });
+
     _fetchLatestImage();
     _imageTimer = Timer.periodic(
       const Duration(seconds: 5),
@@ -57,7 +109,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   void dispose() {
-    _sensorTimer?.cancel();
     _imageTimer?.cancel();
     super.dispose();
   }
@@ -88,7 +139,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       _publishWarning(sensor, value);
     });
 
-    // Ambil pesan pertama untuk Snackbar
     String warningMsg = "";
     if (warnings.containsKey("pH")) {
       warningMsg = "⚠ pH air tidak normal!";
@@ -106,7 +156,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
       final now = DateTime.now();
       if (_lastWarningTime != null &&
           now.difference(_lastWarningTime!).inSeconds < 10) {
-        return; // jangan spam Snackbar
+        return;
       }
       _lastWarningTime = now;
 
@@ -163,23 +213,45 @@ class _DashboardScreenState extends State<DashboardScreen> {
   void togglePower() {
     if (maintenanceActive) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
+        const SnackBar(
           content: Text(
             "Maintenance sedang aktif, pompa akan menyala otomatis nanti.",
           ),
-          duration: const Duration(seconds: 2),
+          duration: Duration(seconds: 2),
         ),
       );
       return;
     }
 
     if (powerOn) {
-      setState(() => powerOn = false);
-      mqtt.setPump(false);
+      // Matikan pompa manual
+      setState(() {
+        powerOn = false;
+        mqtt.setPump(false);
+      });
+
+      // Timer peringatan 15 menit
+      manualLockTimer?.cancel();
+      manualLockTimer = Timer(const Duration(minutes: 15), () {
+        if (!powerOn && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text("⚠ Pompa sudah 15 menit dimatikan manual!"),
+              backgroundColor: Colors.redAccent,
+              duration: Duration(seconds: 15),
+            ),
+          );
+        }
+      });
     } else {
+      // Nyalakan pompa manual
       mqtt.setPump(true);
       setState(() => powerOn = true);
+
+      // Batalkan timer peringatan kalau sudah dinyalakan
+      manualLockTimer?.cancel();
     }
+
     _publishPumpMode();
   }
 
@@ -191,38 +263,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       setState(() => latestImageUrl = url);
     } catch (e) {
       debugPrint('fetch latest image error: $e');
-    }
-  }
-
-  Future<void> _fetchData() async {
-    try {
-      final data = await SensorApi.fetchSensorData();
-      if (!mounted) return;
-
-      setState(() {
-        if (phList.length > 10) phList.removeAt(0);
-        if (tdsList.length > 10) tdsList.removeAt(0);
-        if (suhuAirList.length > 10) suhuAirList.removeAt(0);
-        if (suhuRuanganList.length > 10) suhuRuanganList.removeAt(0);
-        if (kelembapanList.length > 10) kelembapanList.removeAt(0);
-
-        phList.add(data.ph);
-        tdsList.add(data.tds);
-        suhuAirList.add(data.water_temperature);
-        suhuRuanganList.add(data.temperature);
-        kelembapanList.add(data.humidity);
-      });
-
-      // WAJIB ADA INI !
-      checkWarnings(
-        data.ph,
-        data.tds,
-        data.water_temperature,
-        data.temperature,
-        data.humidity,
-      );
-    } catch (e) {
-      debugPrint('fetch sensor error: $e');
     }
   }
 
@@ -269,24 +309,27 @@ class _DashboardScreenState extends State<DashboardScreen> {
               ),
               child: Row(
                 children: [
-                  Image.asset("assets/img/logo.png", height: 50),
-                  const SizedBox(width: 14),
+                  Image.asset("assets/img/logo.png", height: 60),
+                  const SizedBox(width: 17),
                   Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: const [
                       Text(
-                        "Smart Aquaponic System",
+                        "AQUANEK",
                         style: TextStyle(
-                          fontSize: 18,
+                          fontSize: 25,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
                         ),
                       ),
-                      SizedBox(height: 4),
+                      SizedBox(height: 2),
                       Text(
-                        "Monitoring & Control Dashboard",
-                        style: TextStyle(color: Colors.white70, fontSize: 12),
+                        "Aquaponic Network Experience",
+                        style: TextStyle(
+                          color: Color.fromARGB(179, 220, 216, 216),
+                          fontSize: 14,
+                        ),
                       ),
                     ],
                   ),
@@ -341,7 +384,19 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         : LineChart(
                             LineChartData(
                               minY: 0,
-                              maxY: 1000,
+                              maxY:
+                                  [
+                                    ...phList,
+                                    ...tdsList,
+                                    ...suhuAirList,
+                                    ...suhuRuanganList,
+                                    ...kelembapanList,
+                                  ].fold<double>(
+                                    0,
+                                    (prev, element) =>
+                                        element > prev ? element : prev,
+                                  ) +
+                                  10,
                               gridData: FlGridData(
                                 show: true,
                                 drawVerticalLine: false,
@@ -401,25 +456,69 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   const SizedBox(width: 12),
 
                   // Gambar hasil klasifikasi
-                  Container(
-                    width: 250,
-                    height: 250,
-                    decoration: BoxDecoration(
-                      color: Colors.grey.shade200,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: latestImageUrl == null
-                        ? const Center(child: Text("Belum ada gambar."))
-                        : ClipRRect(
-                            borderRadius: BorderRadius.circular(16),
-                            child: Image.network(
-                              latestImageUrl!,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => const Center(
-                                child: Text("Gagal memuat gambar"),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Padding(
+                        padding: EdgeInsets.only(bottom: 8.0),
+                        child: Text(
+                          "Hasil Klasifikasi",
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.black87,
+                          ),
+                        ),
+                      ),
+                      GestureDetector(
+                        onTap: () {
+                          if (latestImageUrl == null) return;
+
+                          showDialog(
+                            context: context,
+                            builder: (_) => Dialog(
+                              backgroundColor: Colors.transparent,
+                              insetPadding: const EdgeInsets.all(10),
+                              child: InteractiveViewer(
+                                panEnabled: true,
+                                minScale: 0.5,
+                                maxScale: 4.0,
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.network(
+                                    '${latestImageUrl!}?v=${DateTime.now().millisecondsSinceEpoch}',
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Center(
+                                      child: Text("Gagal memuat gambar"),
+                                    ),
+                                  ),
+                                ),
                               ),
                             ),
+                          );
+                        },
+                        child: Container(
+                          width: 250,
+                          height: 250,
+                          decoration: BoxDecoration(
+                            color: Colors.grey.shade200,
+                            borderRadius: BorderRadius.circular(16),
                           ),
+                          child: latestImageUrl == null
+                              ? const Center(child: Text("Belum ada gambar."))
+                              : ClipRRect(
+                                  borderRadius: BorderRadius.circular(16),
+                                  child: Image.network(
+                                    '${latestImageUrl!}?v=${DateTime.now().millisecondsSinceEpoch}',
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, __, ___) => const Center(
+                                      child: Text("Gagal memuat gambar"),
+                                    ),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
