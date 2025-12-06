@@ -51,14 +51,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     mqtt = MqttService();
     mqtt
         .connect(
-          
           onMessage: (topic, payload) {
-              // ⬇⬇⬇ ADD DEBUG PRINT HERE
-  print("📩 MQTT RECEIVED TOPIC: $topic  |  PAYLOAD: $payload");
-  // ⬆⬆⬆
-            
+            // ⬇⬇⬇ ADD DEBUG PRINT HERE
+            print("📩 MQTT RECEIVED TOPIC: $topic  |  PAYLOAD: $payload");
+            // ⬆⬆⬆
+
             setState(() {
-              
               final value = double.tryParse(payload) ?? 0;
 
               if (topic.endsWith("/ph")) {
@@ -95,14 +93,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
           },
         )
         .then((_) {
-          // << ADD THIS !!
           mqtt.subscribe("aquaponic/#");
           print("📡 SUBSCRIBED TO aquaponic/#");
         });
 
     _fetchLatestImage();
     _imageTimer = Timer.periodic(
-      const Duration(seconds: 5),
+      const Duration(seconds: 20),
       (_) => _fetchLatestImage(),
     );
   }
@@ -510,6 +507,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   borderRadius: BorderRadius.circular(16),
                                   child: Image.network(
                                     '${latestImageUrl!}?v=${DateTime.now().millisecondsSinceEpoch}',
+                                    gaplessPlayback: true,
                                     fit: BoxFit.cover,
                                     errorBuilder: (_, __, ___) => const Center(
                                       child: Text("Gagal memuat gambar"),
