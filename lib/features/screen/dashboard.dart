@@ -48,6 +48,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
   @override
   void initState() {
     super.initState();
+    phList.add(0);
+    tdsList.add(0);
+    suhuAirList.add(0);
+    suhuRuanganList.add(0);
+    kelembapanList.add(0);
     mqtt = MqttService();
     mqtt
         .connect(
